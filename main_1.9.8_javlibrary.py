@@ -77,7 +77,7 @@ if __name__ == '__main__':
     print('正在读取ini中的设置...', end='')
     config_settings = configparser.RawConfigParser()
     try:
-        config_settings.read('config.ini', encoding='utf-8-sig')
+        config_settings.read('config.ini', encoding='utf-8')
         if_nfo = config_settings.get("收集nfo", "是否收集nfo？")
         if_exnfo = config_settings.get("收集nfo", "是否跳过已存在nfo的文件夹？")
         if_review = config_settings.get("收集nfo", "是否收集javlibrary上的影评？")
@@ -143,7 +143,7 @@ if __name__ == '__main__':
             config_settings.set("百度人体检测", "AppID", "")
             config_settings.set("百度人体检测", "API Key", "")
             config_settings.set("百度人体检测", "Secret Key", "")
-            config_settings.write(open('config.ini', "w", encoding='utf-8-sig'))
+            config_settings.write(open('config.ini', "w", encoding='utf-8'))
             print('写入“config.ini”文件成功，如果需要修改重命名格式请重新打开ini修改，然后重新启动程序！')
             os.system('pause')
         except:
@@ -164,7 +164,7 @@ if __name__ == '__main__':
                              "后面的N数字表示你有N部(次)影片都在找她的头像，可惜找不到")
             config_actor.set("说明", "你可以去保存一下她的头像jpg到“女优头像”文件夹",
                              "以后就能保存她的头像到影片的文件夹了")
-            config_actor.write(open('【缺失的女优头像统计For Kodi】.ini', "w", encoding='utf-8-sig'))
+            config_actor.write(open('【缺失的女优头像统计For Kodi】.ini', "w", encoding='utf-8'))
             print('\n    >“【缺失的女优头像统计For Kodi】.ini”文件丢失...正在重写ini...成功！')
             print('正在重新读取...', end='')
     print('\n读取ini文件成功!')
@@ -842,14 +842,14 @@ if __name__ == '__main__':
                                     fail_list.append(fail_message)
                                     write_fail(fail_message)
                                     config_actor = configparser.ConfigParser()
-                                    config_actor.read('【缺失的女优头像统计For Kodi】.ini', encoding='utf-8-sig')
+                                    config_actor.read('【缺失的女优头像统计For Kodi】.ini', encoding='utf-8')
                                     try:
                                         each_actor_times = config_actor.get('缺失的女优头像', each_actor)
                                         config_actor.set("缺失的女优头像", each_actor, str(int(each_actor_times) + 1))
                                     except:
                                         config_actor.set("缺失的女优头像", each_actor, '1')
                                     config_actor.write(
-                                        open('【缺失的女优头像统计For Kodi】.ini', "w", encoding='utf-8-sig'))
+                                        open('【缺失的女优头像统计For Kodi】.ini', "w", encoding='utf-8'))
                                     continue
                                 else:
                                     jpg_type = '.png'
