@@ -139,7 +139,7 @@ except:
         config_settings.set("百度人体检测", "AppID", "")
         config_settings.set("百度人体检测", "API Key", "")
         config_settings.set("百度人体检测", "Secret Key", "")
-        config_settings.write(open('ini的设置会影响所有exe的操作结果.ini', "w", encoding='utf-8-sig'))
+        config_settings.write(open('config.ini', "w", encoding='utf-8-sig'))
         print('写入“config.ini”文件成功，如果需要修改重命名格式请重新打开ini修改，然后重新启动程序！')
         os.system('pause')
     except:
