@@ -92,12 +92,14 @@ class JavFile(object):
         self.name = 'ABC-123.mp4'  # 文件名
         self.car = 'ABC-123'  # 车牌
         self.episodes = 0  # 第几集
+        self.trim_prefix = ""
 
 
 if __name__ == '__main__':
     #  main开始
     print('1、避开12:00-14：00和18:00-1:00，访问javlibrary和arzon很慢。\n'
-          '2、若一直连不上javlibrary，请在ini中更新网址\n')
+          '2、若一直连不上javlibrary，请在ini中更新网址\n'
+          '3、请确保每一个视频文件外层都有一个和她它对应的文件夹\n')
     # 读取配置文件，这个ini文件用来给用户设置重命名的格式和jav网址
     print('正在读取ini中的设置...', end='')
     config_settings = configparser.RawConfigParser()
@@ -271,6 +273,12 @@ if __name__ == '__main__':
                 # 判断是不是视频，得到车牌号
                 if raw_file.endswith(type_tuple) and not raw_file.startswith('.'):
                     videos_num += 1
+                    # 排除视频文件包含hhd800.com@IPZZ-079.mp4 这种格式
+                    trim_prefix = "hhd800.com@"
+                    has_trim_prefix = False
+                    if trim_prefix in raw_file:
+                        has_trim_prefix = True
+                        raw_file = raw_file.replace(trim_prefix, "")
                     video_num_g = re.search(r'([a-zA-Z]{2,6})-? ?(\d{2,5})', raw_file)  # 这个正则表达式匹配“车牌号”可能有点奇怪，
                     if str(video_num_g) != 'None':  # 如果你下过上千部片，各种参差不齐的命名，你就会理解我了。
                         num_pref = video_num_g.group(1).upper()
@@ -290,6 +298,8 @@ if __name__ == '__main__':
                         else:
                             cars_dic[car_num] += 1  # 已经有这个车牌了，加一集cd
                         jav_file = JavFile()
+                        if has_trim_prefix:
+                            jav_file.trim_prefix = trim_prefix
                         jav_file.car = car_num  # 车牌
                         jav_file.name = raw_file  # 原文件名
                         jav_file.episodes = cars_dic[car_num]  # 这个jav视频，是第几集
@@ -344,10 +354,10 @@ if __name__ == '__main__':
                         title = titleg.group(1)
                     # 第二种情况：搜索结果可能是两个以上，所以这种匹配找不到标题，None！
                     else:  # 继续找标题，但匹配形式不同，这是找“可能是多个结果的网页”上的第一个标题
-                        search_result = re.search(r'v=javli(.+?)" title=".+?-\d+?[a-z]? ', jav_html)
+                        search_result = re.search(r'v=javme(.+?)" title=".+?-\d+?[a-z]? ', jav_html)
                         # 搜索有几个结果，用第一个AV的网页，打开它
                         if str(search_result) != 'None':
-                            first_url = library_url + '?v=javli' + search_result.group(1)
+                            first_url = library_url + '?v=javme' + search_result.group(1)
                             try:
                                 jav_rqs = requests.get(first_url, timeout=10)
                                 jav_rqs.encoding = 'utf-8'
@@ -697,6 +707,8 @@ if __name__ == '__main__':
                             cd_msg = '-cd' + str(srt.episodes)
                             new_mp4 += cd_msg
                         # rename mp4
+                        if srt.trim_prefix != "":
+                            file = trim_prefix + file
                         os.rename(root + '\\' + file, root + '\\' + new_mp4 + video_type)
                         # file发生了变化
                         file = new_mp4 + video_type
@@ -707,6 +719,7 @@ if __name__ == '__main__':
                     new_folder = root.split('\\')[-1]  # 当前影片的新目录名称
                     if if_folder == '是':
                         # 新文件夹名new_folder
+                        temp_folder = new_folder
                         new_folder = ''
                         for j in rename_folder_list:
                             if j not in nfo_dict:
@@ -716,6 +729,11 @@ if __name__ == '__main__':
                             else:
                                 new_folder = new_folder + ' '.join(nfo_dict[j])
                         new_folder = new_folder.rstrip(' ')  # 去除末尾空格，否则windows会自动删除空格，导致程序仍以为带空格
+                        # 如果是有字幕的 文件夹保留-C标记
+                        if "-4k" in temp_folder or "-4K" in temp_folder:
+                            new_folder = new_folder + " 4k"
+                        if "-c" in temp_folder or "-C" in temp_folder:
+                            new_folder = new_folder + " C"
                         if separate_folder:  # 是独立文件夹，才会重命名文件夹
                             if cars_dic[car_num] == 1 or (cars_dic[car_num] > 1 and cars_dic[car_num] == srt.episodes):
                                 # 同一车牌有多部，且这是最后一部，才会重命名
@@ -729,6 +747,9 @@ if __name__ == '__main__':
                                 elif new_root == root:  # 目标影片文件夹存在，但就是现在的文件夹，即新旧相同
                                     os.rename(root, new_root)
                                 else:  # 已经有一个那样的文件夹了
+                                    # 默认增加一个 D来区分 标记为duplicate
+                                    os.rename(root, new_root + " D")
+                                    print("f已发现番号视频目录已存在,已做D标记处理")
                                     fail_times += 1
                                     fail_message = '    >第' + str(
                                         fail_times) + '个失败！重命名文件夹失败，重复的影片，已存在相同文件夹：' + relative_path + file + '\n'
