@@ -74,7 +74,7 @@ print('1、避开12:00-14：00和18:00-1:00，访问javlibrary和arzon很慢。\
 print('正在读取ini中的设置...', end='')
 config_settings = configparser.RawConfigParser()
 try:
-    config_settings.read('ini的设置会影响所有exe的操作结果.ini', encoding='utf-8-sig')
+    config_settings.read('config.ini', encoding='utf-8-sig')
     if_nfo = config_settings.get("收集nfo", "是否收集nfo？")
     if_exnfo = config_settings.get("收集nfo", "是否跳过已存在nfo的文件夹？")
     if_review = config_settings.get("收集nfo", "是否收集javlibrary上的影评？")
@@ -140,7 +140,7 @@ except:
         config_settings.set("百度人体检测", "API Key", "")
         config_settings.set("百度人体检测", "Secret Key", "")
         config_settings.write(open('ini的设置会影响所有exe的操作结果.ini', "w", encoding='utf-8-sig'))
-        print('写入“ini的设置会影响所有exe的操作结果.ini”文件成功，如果需要修改重命名格式请重新打开ini修改，然后重新启动程序！')
+        print('写入“config.ini”文件成功，如果需要修改重命名格式请重新打开ini修改，然后重新启动程序！')
         os.system('pause')
     except:
         print(traceback.format_exc())
