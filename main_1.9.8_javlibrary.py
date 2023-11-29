@@ -61,6 +61,31 @@ def get_acook():
     return session.cookies.get_dict()
 
 
+# 控制台颜色
+class ConsoleColor:
+    RED = '\033[91m'
+    GREEN = '\033[32m'
+    END = '\033[0m'
+
+
+def clean_video_folder(video_foler: str, video_type_tuple: ()):
+    type_list = ["." + i for i in video_type_tuple]
+    type_list.append(".torrent")
+    tuple_ = tuple(type_list)
+    # 遍历文件夹及其子文件夹
+    for root, dirs, files in os.walk(video_foler):
+        for file in files:
+            file_path = os.path.join(root, file)
+
+            # 如果文件是 .mp4 或 .torrent 文件，则保留，否则删除
+            if file.lower().endswith(tuple_):
+                print(f'{ConsoleColor.GREEN}保留文件: {file_path}{ConsoleColor.END}')
+            else:
+                print(f'{ConsoleColor.RED}删除文件: {file_path}{ConsoleColor.END}')
+                os.remove(file_path)
+        print("-------------------------------------------------")
+
+
 # 每一部jav的“结构体”
 class JavFile(object):
     def __init__(self):
@@ -90,6 +115,8 @@ if __name__ == '__main__':
         classify_basis = config_settings.get("归类影片", "归类的标准")
         if_jpg = config_settings.get("获取两张jpg", "是否获取fanart.jpg和poster.jpg？")
         if_qunhui = config_settings.get("获取两张jpg", "是否采取群辉video station命名方式？")
+        if_sample_images = config_settings.get("获取样品图", "是否获取样品图")
+        sample_images_format = config_settings.get("获取样品图", "样品图命名前缀格式")
         if_sculpture = config_settings.get("kodi专用", "是否收集女优头像")
         simp_trad = config_settings.get("其他设置", "简繁中文？")
         library_url = config_settings.get("其他设置", "javlibrary网址")
@@ -121,6 +148,8 @@ if __name__ == '__main__':
             config_settings.add_section("获取两张jpg")
             config_settings.set("获取两张jpg", "是否获取fanart.jpg和poster.jpg？", "是")
             config_settings.set("获取两张jpg", "是否采取群辉video station命名方式？", "否")
+            config_settings.set("获取样品图", "是否获取样品图", "是")
+            config_settings.set("获取样品图", "样品图命名前缀格式", "sample+数字")
             config_settings.add_section("kodi专用")
             config_settings.set("kodi专用", "是否收集女优头像", "否")
             config_settings.add_section("emby服务端")
@@ -714,7 +743,8 @@ if __name__ == '__main__':
                             os.rename(root + '\\' + file, root + '\\' + new_folder + '\\' + file)  # 就把影片放进去
                             new_root = root + '\\' + new_folder  # # 当前非独立的目录+新目录名称=新独立的文件夹
                             print('    >创建独立的文件夹完成')
-
+                        # 移除所有不相关的文件只保留视频文件和torrent文件
+                        clean_video_folder(new_root, type_tuple)
                     # 更新一下relative_path
                     relative_path = '，\\' + new_root.lstrip(path) + '\\' + file  # 影片的相对于所选文件夹的路径，用于报错
                     # 3写入nfo开始
@@ -757,7 +787,8 @@ if __name__ == '__main__':
                     # 4需要两张图片
                     if if_jpg == '是':
                         # 下载海报的地址 cover
-                        cover_url = 'http:' + cover
+                        if "https://" not in cover:
+                            cover_url = 'https://' + cover
                         # fanart和poster路径
                         if if_qunhui != '是':
                             fanart_path = new_root + '\\' + new_mp4 + '-fanart.jpg'
@@ -767,18 +798,40 @@ if __name__ == '__main__':
                             poster_path = new_root + '\\' + new_mp4 + '.png'
                         # 下载 海报
                         try:
-                            print('    >正在下载封面：', cover_url)
-                            r = requests.get(cover_url, stream=True, timeout=10)
-                            with open(fanart_path, 'wb') as f:
-                                for chunk in r:
-                                    f.write(chunk)
-                            print('    >fanart.jpg下载成功')
+                            # print('    >正在下载封面：', cover_url)
+                            # poster_header = {
+                            #     "Referer": f"{bus_search_url}",
+                            #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+                            # }
+                            # r = requests.get(cover_url, stream=True, timeout=10, headers=headers)
+                            # with open(fanart_path, 'wb') as f:
+                            #     for chunk in r:
+                            #         f.write(chunk)
+                            # print('    >fanart.jpg下载成功')
+                            raise RuntimeError("不使用javlibrary获取海报")
                         except:
                             print('    >从javlibrary下载fanart.jpg失败，正在前往javbus...')
                             # 在javbus上找图片url
                             bus_search_url = bus_url + nfo_dict['车牌']
                             try:
-                                bus_search_rqs = requests.get(bus_search_url, timeout=10)
+                                # 这里对于非美国的节点访问 需要使用cookie
+                                headers = {
+                                    'authority': 'www.javbus.com',
+                                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                                    'accept-language': 'zh,en;q=0.9,zh-TW;q=0.8,zh-CN;q=0.7,ja;q=0.6',
+                                    'cache-control': 'max-age=0',
+                                    'cookie': 'PHPSESSID=r5vcbumug9golfcic7juk6oba3; 4fJN_2132_seccodecSAJL4TJ8GJH=11161.d933c2686777d0cfb0; 4fJN_2132_lastcheckfeed=576343%7C1697851770; 4fJN_2132_nofavfid=1; 4fJN_2132_lip=172.70.122.159%2C1697851781; 4fJN_2132_ulastactivity=d904a01rINv29Bt6olBES08uFwqtxP7YA06jkgxU8cxkAsv9uB%2B1; 4fJN_2132_auth=a50cI7AENAtN%2FOrFfQHVLuQs8TQwROGraxac8scKFKheQFBqA2YMGRnJ9R9N64jUyN48rE1qFVA6kdaHKghKYuXEErw; bus_auth=ce4dK9xmji9gnnfTwnqQGRi1Ppw%2BmztGtvna7nZ9bLjY0CSRFcNYtECvXmylJGbitKQ; existmag=mag',
+                                    'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+                                    'sec-ch-ua-mobile': '?0',
+                                    'sec-ch-ua-platform': '"macOS"',
+                                    'sec-fetch-dest': 'document',
+                                    'sec-fetch-mode': 'navigate',
+                                    'sec-fetch-site': 'none',
+                                    'sec-fetch-user': '?1',
+                                    'upgrade-insecure-requests': '1',
+                                    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+                                }
+                                bus_search_rqs = requests.get(bus_search_url, timeout=10, headers=headers)
                                 bus_search_rqs.encoding = 'utf-8'
                                 bav_html = bus_search_rqs.text
                             except:
@@ -792,10 +845,11 @@ if __name__ == '__main__':
                             # DVD封面cover
                             coverg = re.search(r'<a class="bigImage" href="(.+?)">', bav_html)  # 封面图片的正则对象
                             if str(coverg) != 'None':
-                                cover_url = coverg.group(1)
+                                cover_url = bus_url + coverg.group(1)
+
                                 print('    >正在从javbus下载封面：', cover_url)
                                 try:
-                                    r = requests.get(cover_url, stream=True, timeout=10)
+                                    r = requests.get(cover_url, stream=True, timeout=10, headers=headers)
                                     with open(fanart_path, 'wb') as f:
                                         for chunk in r:
                                             f.write(chunk)
@@ -816,6 +870,28 @@ if __name__ == '__main__':
                                 fail_list.append(fail_message)
                                 write_fail(fail_message)
                                 continue
+                            # 获取sample images
+                            if if_sample_images == '是':
+                                sample_images = re.findall(r'<a class="sample-box" href="([^"]*)">', bav_html)
+                                for s in sample_images:
+                                    file_name = sample_images_format + "-" + os.path.basename(s)
+                                    sample_path = new_root + "\\" + file_name
+                                    try:
+                                        sample_header = {
+                                            "Referer": f"{bus_search_url}",
+                                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+                                        }
+                                        r = requests.get(s, stream=True, timeout=10, headers=sample_header)
+                                        with open(sample_path, 'wb') as f:
+                                            for chunk in r:
+                                                f.write(chunk)
+                                        print(f'    >样品图{file_name}下载成功')
+                                    except:
+                                        print(f"    >样品图: {file_name} 下载失败")
+                                        byte_data = b'x41'
+                                        with open(sample_path, 'wb') as f:
+                                            f.write(byte_data)
+
                         # 裁剪生成 poster
                         img = Image.open(fanart_path)
                         w, h = img.size  # fanart的宽 高
@@ -916,3 +992,6 @@ if __name__ == '__main__':
             print('没有处理失败的AV，干得漂亮！  ', path, '\n')
         # os.system('pause')
         start_key = input('回车继续选择文件夹整理：')
+
+# if __name__ == '__main__':
+#     clean_video_folder("H:\非字幕\测试", ("mp4",))
