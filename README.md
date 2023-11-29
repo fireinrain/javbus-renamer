@@ -1,4 +1,4 @@
-# JAV-Scraper-and-Rename-local-files
+# javbus-renamer
 收集jav元数据，并规范本地文件（夹）的格式，为emby、kodi、jellyfin收集女优头像。  
 python3.7  使用pyinstaller打包成exe。
 
