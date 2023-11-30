@@ -4,20 +4,11 @@ from PIL import Image
 from tkinter import filedialog, Tk
 from time import sleep
 
+import utils
+
 
 # 获取用户选取的文件夹路径，返回路径str
-def get_directory():
-    directory_root = Tk()
-    directory_root.withdraw()
-    work_path = filedialog.askdirectory()
-    if work_path == '':
-        print('你没有选择目录! 请重新选：')
-        sleep(2)
-        return get_directory()
-    else:
-        # askdirectory 获得是 正斜杠 路径C:/，所以下面要把 / 换成 反斜杠\
-        temp_path = work_path.replace('/', '\\')
-        return temp_path
+
 
 
 # 记录错误txt，无返回
@@ -84,6 +75,19 @@ def clean_video_folder(video_foler: str, video_type_tuple: ()):
                 print(f'{ConsoleColor.RED}删除文件: {file_path}{ConsoleColor.END}')
                 os.remove(file_path)
         print("-------------------------------------------------")
+
+
+def short_long_folder_name(folder_name: str) -> str:
+    star_names = folder_name.replace("【", "").replace("】", " ")
+    stars = star_names.split(" ")
+    if len(stars) > 11:
+        new_stars = stars[:10]
+        new_stars[0] = "【" + new_stars[0]
+        new_stars[9] = new_stars[9] + "】"
+        new_stars.append(stars[-1])
+        return " ".join(new_stars)
+
+    return folder_name
 
 
 # 每一部jav的“结构体”
@@ -230,7 +234,7 @@ if __name__ == '__main__':
     while start_key == '':
         # 用户选择文件夹
         print('请选择要整理的文件夹：', end='')
-        path = get_directory()
+        path = utils.get_directory()
         print(path)
         write_fail('已选择文件夹：' + path + '\n')
         print('...文件扫描开始...如果时间过长...请避开中午夜晚高峰期...\n')
@@ -279,7 +283,9 @@ if __name__ == '__main__':
                     if trim_prefix in raw_file:
                         has_trim_prefix = True
                         raw_file = raw_file.replace(trim_prefix, "")
-                    video_num_g = re.search(r'([a-zA-Z]{2,6})-? ?(\d{2,5})', raw_file)  # 这个正则表达式匹配“车牌号”可能有点奇怪，
+                    # video_num_g = re.search(r'([a-zA-Z]{2,6})-? ?(\d{2,5})', raw_file)  # 这个正则表达式匹配“车牌号”可能有点奇怪，
+                    video_num_g = re.search(r'([a-zA-Z]{1,6})-? ?(\d{2,5})', raw_file)  # 这个正则表达式匹配“车牌号”可能有点奇怪，
+
                     if str(video_num_g) != 'None':  # 如果你下过上千部片，各种参差不齐的命名，你就会理解我了。
                         num_pref = video_num_g.group(1).upper()
                         num_suf = video_num_g.group(2)
@@ -355,13 +361,29 @@ if __name__ == '__main__':
                     # 第二种情况：搜索结果可能是两个以上，所以这种匹配找不到标题，None！
                     else:  # 继续找标题，但匹配形式不同，这是找“可能是多个结果的网页”上的第一个标题
                         javtype = "javme"
-                        search_result = re.search(r'v=javme(.+?)" title=".+?-\d+?[a-z]? ', jav_html)
+                        pattern = re.compile(r'v=javme(.+?)" title="(.+?-\d+?)[a-z]? ')
+                        all_matchs = pattern.findall(jav_html)
+                        search_result = None
+                        if all_matchs:
+                            for item in all_matchs:
+                                if item[1].strip() == car_num:
+                                    search_result = item
+                                    break
+
+
                         if search_result is None:
                             javtype = "javli"
-                            search_result = re.search(r'v=javli(.+?)" title=".+?-\d+?[a-z]? ', jav_html)
+                            pattern = re.compile(r'v=javli(.+?)" title="(.+?-\d+?)[a-z]? ')
+                            all_matchs = pattern.findall(jav_html)
+                            if all_matchs:
+                                for item in all_matchs:
+                                    if item[1].strip() == car_num:
+                                        search_result = item
+                                        break
+
                         # 搜索有几个结果，用第一个AV的网页，打开它
                         if str(search_result) != 'None':
-                            first_url = library_url + f'?v={javtype}' + search_result.group(1)
+                            first_url = library_url + f'?v={javtype}' + search_result[0]
                             try:
                                 jav_rqs = requests.get(first_url, timeout=10)
                                 jav_rqs.encoding = 'utf-8'
@@ -379,6 +401,7 @@ if __name__ == '__main__':
                                               jav_html).group(1)
                         # 第三种情况：搜索不到这部影片，搜索结果页面什么都没有
                         else:
+                            # TODO 这里尝试使用javbus查找
                             fail_times += 1
                             fail_message = '第' + str(
                                 fail_times) + '个失败！找不到AV信息，无码？新系列素人？年代久远？：' + search_url + '，' + relative_path + '\n'
@@ -740,6 +763,8 @@ if __name__ == '__main__':
                             else:
                                 new_folder = new_folder + ' '.join(nfo_dict[j])
                         new_folder = new_folder.rstrip(' ')  # 去除末尾空格，否则windows会自动删除空格，导致程序仍以为带空格
+                        # 最多保留10个演员
+                        new_folder = short_long_folder_name(new_folder)
                         # 如果是有字幕的 文件夹保留-C标记
                         if "-4k" in temp_folder or "-4K" in temp_folder:
                             new_folder = new_folder + " 4k"
