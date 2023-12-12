@@ -35,5 +35,11 @@ class TestAddFunction(unittest.TestCase):
             print("--------------------------")
 
 
+    def test_cf(self):
+        import requests
+        response = requests.get("https://129.146.0.222/cn/vl_searchbyid.php?keyword=IPX-061",verify=False)
+        print(response.text)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -10,7 +10,6 @@ import utils
 # 获取用户选取的文件夹路径，返回路径str
 
 
-
 # 记录错误txt，无返回
 def write_fail(fail_m):
     record_txt = open('【记得清理它】失败记录.txt', 'a', encoding="utf-8")
@@ -332,19 +331,22 @@ if __name__ == '__main__':
                     file = srt.name
                     relative_path = '\\' + root.lstrip(path) + '\\' + file  # 影片的相对于所选文件夹的路径，用于报错
                     # 获取nfo信息的javlibrary搜索网页
+                    #  该死的javlibrary 开了cf 5秒盾  只能去找源站ip地址了，设置ssl证书校验跳过
+                    library_url = 'https://129.146.0.222/cn/'
                     search_url = library_url + 'vl_searchbyid.php?keyword=' + car_num
                     try:
-                        jav_rqs = requests.get(search_url, timeout=10)
+                        jav_rqs = requests.get(search_url, timeout=10, verify=False)
                         jav_rqs.encoding = 'utf-8'
                         jav_html = jav_rqs.text
                     except:
                         try:  # 用网高峰期，经常打不开javlibrary，尝试第二次
                             print('>>尝试打开javlibrary搜索页面失败，正在尝试第二次打开...')
-                            jav_rqs = requests.get(search_url, timeout=10)
+                            jav_rqs = requests.get(search_url, timeout=10, verify=False)
                             jav_rqs.encoding = 'utf-8'
                             jav_html = jav_rqs.text
                             print('    >第二次尝试成功！')
-                        except:
+                        except Exception as e:
+                            print(f'Error while fetching javlibrary: {e}')
                             fail_times += 1
                             fail_message = '第' + str(
                                 fail_times) + '个失败！打开javlibrary搜索页面失败：' + search_url + '，' + relative_path + '\n'
@@ -370,7 +372,6 @@ if __name__ == '__main__':
                                     search_result = item
                                     break
 
-
                         if search_result is None:
                             javtype = "javli"
                             pattern = re.compile(r'v=javli(.+?)" title="(.+?-\d+?)[a-z]? ')
@@ -385,7 +386,7 @@ if __name__ == '__main__':
                         if str(search_result) != 'None':
                             first_url = library_url + f'?v={javtype}' + search_result[0]
                             try:
-                                jav_rqs = requests.get(first_url, timeout=10)
+                                jav_rqs = requests.get(first_url, timeout=10,verify=False)
                                 jav_rqs.encoding = 'utf-8'
                                 jav_html = jav_rqs.text
                             except:
