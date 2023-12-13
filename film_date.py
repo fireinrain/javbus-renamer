@@ -45,6 +45,7 @@ def fetch_film_info(code: str) -> {}:
         response.encoding = "utf-8"
         soup = BeautifulSoup(response.text, 'lxml')
         # 获取到的网页信息需要进行解析，使用lxml解析器，其实默认的解析器就是lxml，但是这里会出现警告提示，方便你对其他平台移植
+        print(f"当前请求的url: {url}")
         webtitle = str(soup.h3.string)
         # print(webtitle)
         av_info['avid'] = webtitle.split(" ")[0]
@@ -134,6 +135,8 @@ def update_film_folder_date(film_folder: str):
                 date_string = is_start_with_date_string(dir)
                 if date_string:
                     continue
+                if "【" not in dir:
+                    continue
                 temp = dir
                 clean_folder_name = dir.replace("【", "").replace("】", " ")
                 if len(temp) == clean_folder_name:
@@ -145,7 +148,12 @@ def update_film_folder_date(film_folder: str):
                     if "-" in name:
                         code = name
                         break
+                if "-C" in code or "-c" in code:
+                    code = code.replace("-C", "").replace("-c", "")
+                print(f"当前处理的文件夹: {dir}")
                 film_info = fetch_film_info(code)
+                if not film_info:
+                    continue
                 publish_date = film_info['product_date']
                 new_folder = root + os.sep + publish_date + temp
                 older_foder = root + os.sep + temp
