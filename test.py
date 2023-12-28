@@ -41,5 +41,39 @@ class TestAddFunction(unittest.TestCase):
         print(response.text)
 
 
+    def test_rename_dir(self):
+        import os
+        import re
+
+        def rename_folders(directory_path):
+            # 获取目录下所有子目录
+            subdirectories = [d for d in os.listdir(directory_path) if os.path.isdir(os.path.join(directory_path, d))]
+
+            for subdirectory in subdirectories:
+                original_path = os.path.join(directory_path, subdirectory)
+
+                # 使用正则表达式匹配日期格式，假设日期格式为X月X日
+                match = re.search(r'(\d{1,2}月\d{1,2}日)', subdirectory)
+
+                if match:
+                    # 提取匹配到的日期
+                    original_date = match.group(0)
+
+                    # 将日期格式调整为XX月XX日
+                    modified_date = original_date.zfill(4)  # 在单数字月份或日期前面补零
+                    modified_path = os.path.join(directory_path, subdirectory.replace(original_date, modified_date))
+
+                    # 重命名文件夹
+                    os.rename(original_path, modified_path)
+                    print(f'Renamed: {original_path} -> {modified_path}')
+
+
+        # 指定要处理的目录路径
+        target_directory = "C:/ceshi/riqi"
+
+        # 调用函数进行重命名
+        rename_folders(target_directory)
+
+
 if __name__ == '__main__':
     unittest.main()
